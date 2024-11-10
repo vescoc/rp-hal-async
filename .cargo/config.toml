@@ -1,0 +1,37 @@
+[alias]
+build-arm1 = "build --target=thumbv6m-none-eabi -F rp2040"
+build-arm2 = "build --target=thumbv8m.main-none-eabihf -F rp235x"
+build-riscv32 = "build --target=riscv32imac-unknown-none-elf -F rp235x"
+
+clippy-arm1 = "clippy --target=thumbv6m-none-eabi -F rp2040"
+clippy-arm2 = "clippy --target=thumbv8m.main-none-eabihf -F rp235x"
+clippy-riscv32 = "clippy --target=riscv32imac-unknown-none-elf -F rp235x"
+
+[target.thumbv6m-none-eabi]
+rustflags = [
+          "-C", "link-arg=--nmagic",
+          "-C", "link-arg=-Trp2040_memory.x",
+          "-C", "link-arg=-Tlink.x",
+          "-C", "link-arg=-Tdefmt.x",
+          "-C", "no-vectorize-loops",
+]
+
+[target.thumbv8m.main-none-eabihf]
+rustflags = [
+          "-C", "link-arg=--nmagic",
+          "-C", "link-arg=-Trp235x_memory.x",
+          "-C", "link-arg=-Tlink.x",
+          "-C", "link-arg=-Tdefmt.x",
+          "-C", "target-cpu=cortex-m33",
+]
+
+[target.riscv32imac-unknown-none-elf]
+rustflags = [
+          "-C", "link-arg=--nmagic",
+          "-C", "link-arg=-Trp235x_riscv_memory.x",
+          "-C", "link-arg=-Tlink.x",
+          "-C", "link-arg=-Tdefmt.x",
+]
+
+[env]
+DEFMT_LOG = "trace"

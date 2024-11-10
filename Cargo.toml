@@ -1,0 +1,93 @@
+[package]
+name = "rp-hal-async"
+version = "0.1.0"
+edition = "2021"
+
+license = "MIT"
+description = "Implementation of embedded-hal-async for Raspberry Pi Pico and Pico2"
+homepage = "https://github.com/vescoc/rp-hal-async"
+readme = "Readme.md"
+keywords = ["pico", "pico2", "embedded-hal", "async"]
+categories = ["embedded", "no-std"]
+
+[features]
+rp2040 = ["dep:rp2040-hal", "rp2040-hal/rt"]
+rp235x = ["dep:rp235x-hal", "rp235x-hal/rt"]
+
+time_driver = ["dep:embassy-time-driver", "dep:embassy-time"]
+delay = ["dep:embedded-hal-async", "dep:embassy-sync", "dep:fugit"]
+digital = ["dep:embedded-hal", "dep:embedded-hal-async", "dep:embassy-sync"]
+
+example_delay = ["delay"]
+example_simple2 = ["time_driver", "embassy-executor/integrated-timers"]
+example_wait = ["digital"]
+
+[dependencies]
+defmt = "0.3.8"
+rp235x-hal = { version = "0.2.0", optional = true }
+rp2040-hal = { version = "0.10.0", optional = true }
+critical-section = "1.2.0"
+embedded-hal = { version = "1.0.0", optional = true }
+embedded-hal-async = { version = "1.0.0", optional = true }
+embassy-time = { version = "0.3.2", optional = true }
+embassy-time-driver = { version = "0.1.0", optional = true }
+embassy-sync = { version = "0.6.0", optional = true }
+fugit = { version = "0.3.7", optional = true }
+
+[target.'cfg(target_arch = "arm")'.dependencies]
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.5"
+
+[target.'cfg(target_arch = "riscv32")'.dependencies]
+riscv = "0.12.1"
+riscv-rt = "0.12.0"
+
+[dev-dependencies]
+defmt-rtt = "0.4.1"
+embedded-hal = { version = "1.0.0", features = ["defmt-03"] }
+embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
+panic-halt = "1.0.0"
+static_cell = "2.1.0"
+portable-atomic = { version = "1.9.0", features = ["critical-section"] }
+fugit = { version = "0.3.7", features = ["defmt"] }
+embassy-sync = { version = "0.6.0", features = ["defmt"] }
+embassy-time = { version = "0.3.2", features = ["defmt", "defmt-timestamp-uptime"] }
+
+[target.'thumbv8m.main-none-eabihf'.dev-dependencies.rp235x-hal]
+version = "0.2.0"
+features = ["binary-info", "rt", "defmt", "critical-section-impl"]
+
+[target.'thumbv6m-none-eabi'.dev-dependencies]
+rp-pico = { version = "0.9.0", features = ["rp2040-e5"] }
+rp2040-hal = { version = "0.10.0", features = ["rt", "defmt", "critical-section-impl", "rp2040-e5"] }
+
+[target.'cfg(target_arch = "arm")'.dev-dependencies]
+embassy-executor = { version = "0.6.1", features = ["arch-cortex-m", "task-arena-size-98304", "executor-thread", "defmt"] }
+
+[target.'cfg(target_arch = "riscv32")'.dev-dependencies]
+embassy-executor = { version = "0.6.1", features = ["arch-riscv32", "task-arena-size-98304", "executor-thread", "defmt"] }
+
+[[example]]
+name = "rp235x-delay"
+path = "examples/rp235x/delay.rs"
+required-features = ["rp235x", "example_delay"]
+
+[[example]]
+name = "rp2040-delay"
+path = "examples/rp2040/delay.rs"
+required-features = ["rp2040", "example_delay"]
+
+[[example]]
+name = "rp235x-simple2"
+path = "examples/rp235x/simple2.rs"
+required-features = ["rp235x", "example_simple2"]
+
+[[example]]
+name = "rp235x-wait"
+path = "examples/rp235x/wait.rs"
+required-features = ["rp235x", "example_wait"]
+
+[[example]]
+name = "rp235x-wait-rising-edge"
+path = "examples/rp235x/wait_rising_edge.rs"
+required-features = ["rp235x", "example_wait"]
