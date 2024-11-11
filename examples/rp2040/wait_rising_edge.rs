@@ -9,15 +9,11 @@ use embedded_hal_async::digital::Wait;
 
 use rp_hal_async::IntoAsync;
 
-use rp235x_hal as hal;
+use rp_pico::hal;
 
 use static_cell::StaticCell;
 
 use embassy_executor::Executor;
-
-#[unsafe(link_section = ".start_block")]
-#[used]
-pub static IMAGE_DEF: hal::block::ImageDef = hal::block::ImageDef::secure_exe();
 
 #[embassy_executor::task]
 async fn simple() -> ! {
@@ -63,15 +59,3 @@ fn main() -> ! {
 
     executor.run(|spawner| spawner.spawn(simple()).unwrap());
 }
-
-#[unsafe(link_section = ".bi_entries")]
-#[used]
-pub static PICOTOOL_ENTRIES: [hal::binary_info::EntryAddr; 5] = [
-    hal::binary_info::rp_program_name!(c"rp-hal-async-wait-for-rising-edge"),
-    hal::binary_info::rp_cargo_version!(),
-    hal::binary_info::rp_program_description!(
-        c"Test for embedded-hal-async / wait for rising edge"
-    ),
-    hal::binary_info::rp_program_url!(c"private"),
-    hal::binary_info::rp_program_build_attribute!(),
-];

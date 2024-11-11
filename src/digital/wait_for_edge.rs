@@ -61,7 +61,7 @@ where
                 this.done = true;
                 this.pin.set_interrupt_enabled(INFO::INTERRUPT, false);
             }
-            
+
             Poll::Ready(Ok(()))
         } else {
             this.polled = true;

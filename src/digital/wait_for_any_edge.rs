@@ -39,9 +39,11 @@ where
                 defmt::error!("poll invoked after ready");
             } else {
                 this.done = true;
-                
-                this.pin.set_interrupt_enabled(hal::gpio::Interrupt::EdgeLow, false);
-                this.pin.set_interrupt_enabled(hal::gpio::Interrupt::EdgeHigh, false);
+
+                this.pin
+                    .set_interrupt_enabled(hal::gpio::Interrupt::EdgeLow, false);
+                this.pin
+                    .set_interrupt_enabled(hal::gpio::Interrupt::EdgeHigh, false);
             }
             Poll::Ready(Ok(()))
         } else {
@@ -49,8 +51,10 @@ where
 
             I::register_waker(ctx.waker());
 
-            this.pin.set_interrupt_enabled(hal::gpio::Interrupt::EdgeLow, true);
-            this.pin.set_interrupt_enabled(hal::gpio::Interrupt::EdgeHigh, true);
+            this.pin
+                .set_interrupt_enabled(hal::gpio::Interrupt::EdgeLow, true);
+            this.pin
+                .set_interrupt_enabled(hal::gpio::Interrupt::EdgeHigh, true);
 
             Poll::Pending
         }
@@ -64,8 +68,10 @@ where
 {
     fn drop(&mut self) {
         if self.polled && !self.done {
-            self.pin.set_interrupt_enabled(hal::gpio::Interrupt::EdgeLow, false);
-            self.pin.set_interrupt_enabled(hal::gpio::Interrupt::EdgeHigh, false);
+            self.pin
+                .set_interrupt_enabled(hal::gpio::Interrupt::EdgeLow, false);
+            self.pin
+                .set_interrupt_enabled(hal::gpio::Interrupt::EdgeHigh, false);
         }
     }
 }

@@ -19,7 +19,7 @@ rustflags = [
 [target.thumbv8m.main-none-eabihf]
 rustflags = [
           "-C", "link-arg=--nmagic",
-          "-C", "link-arg=-Trp235x_memory.x",
+          "-C", "link-arg=-Trp235x_arm_memory.x",
           "-C", "link-arg=-Tlink.x",
           "-C", "link-arg=-Tdefmt.x",
           "-C", "target-cpu=cortex-m33",

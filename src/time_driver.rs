@@ -1,15 +1,31 @@
 use core::cell::Cell;
-use core::sync::atomic::{AtomicU8, Ordering};
+use core::sync::atomic::Ordering;
 
+use portable_atomic::AtomicU8;
+
+#[cfg(feature = "rp235x")]
 use rp235x_hal as hal;
 
-use hal::pac::interrupt;
+#[cfg(feature = "rp235x")]
+use hal::pac::TIMER1 as TIMER;
+
+#[cfg(feature = "rp2040")]
+use rp2040_hal as hal;
+
+#[cfg(feature = "rp2040")]
+use hal::pac::TIMER;
+
 use hal::timer::Alarm;
 
 use critical_section::Mutex;
 
 use embassy_time_driver::{AlarmHandle, Driver};
 
+use hal::pac::interrupt;
+
+use crate::Timer;
+
+#[allow(clippy::type_complexity)]
 struct AlarmState {
     timestamp: Cell<u64>,
     callback: Cell<Option<(fn(*mut ()), *mut ())>>,
@@ -32,7 +48,7 @@ embassy_time_driver::time_driver_impl!(
 
 impl Driver for TimerDriver {
     fn now(&self) -> u64 {
-        let timer = unsafe { hal::pac::TIMER1::steal() };
+        let timer = unsafe { TIMER::steal() };
         let mut high = timer.timerawh().read().bits();
         loop {
             let low = timer.timerawl().read().bits();
@@ -78,7 +94,7 @@ impl Driver for TimerDriver {
             let alarm = &self.alarms.borrow(cs)[n];
             alarm.timestamp.set(timestamp);
 
-            let timer = unsafe { hal::pac::TIMER1::steal() };
+            let timer = unsafe { TIMER::steal() };
             match n {
                 0 => timer
                     .alarm0()
@@ -114,7 +130,7 @@ impl Driver for TimerDriver {
 impl TimerDriver {
     fn check_alarm(&self, n: usize) {
         critical_section::with(|cs| {
-            let timer = unsafe { hal::pac::TIMER1::steal() };
+            let timer = unsafe { TIMER::steal() };
 
             let alarm = &self.alarms.borrow(cs)[n];
             let timestamp = alarm.timestamp.get();
@@ -137,13 +153,21 @@ impl TimerDriver {
     }
 }
 
-pub(crate) unsafe fn init(mut timer: hal::timer::Timer<hal::timer::CopyableTimer1>) {
-    #[cfg(target_arch = "arm")]
+pub(crate) unsafe fn init(mut timer: Timer) {
+    #[cfg(all(target_arch = "arm", feature = "rp235x"))]
     {
         cortex_m::peripheral::NVIC::unmask(interrupt::TIMER1_IRQ_0);
         cortex_m::peripheral::NVIC::unmask(interrupt::TIMER1_IRQ_1);
         cortex_m::peripheral::NVIC::unmask(interrupt::TIMER1_IRQ_2);
         cortex_m::peripheral::NVIC::unmask(interrupt::TIMER1_IRQ_3);
+    }
+
+    #[cfg(all(target_arch = "arm", feature = "rp2040"))]
+    {
+        cortex_m::peripheral::NVIC::unmask(interrupt::TIMER_IRQ_0);
+        cortex_m::peripheral::NVIC::unmask(interrupt::TIMER_IRQ_1);
+        cortex_m::peripheral::NVIC::unmask(interrupt::TIMER_IRQ_2);
+        cortex_m::peripheral::NVIC::unmask(interrupt::TIMER_IRQ_3);
     }
 
     #[cfg(target_arch = "riscv32")]
@@ -168,38 +192,84 @@ pub(crate) unsafe fn init(mut timer: hal::timer::Timer<hal::timer::CopyableTimer
     core::mem::forget(alarm_3);
 }
 
-#[cfg_attr(target_arch = "arm", interrupt)]
-#[cfg_attr(
-    target_arch = "riscv32",
-    riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_0)
-)]
-fn TIMER1_IRQ_0() {
-    DRIVER.check_alarm(0);
+#[cfg(feature = "rp235x")]
+mod inner {
+    use super::{hal::pac::interrupt, DRIVER};
+
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_0)
+    )]
+    fn TIMER1_IRQ_0() {
+        DRIVER.check_alarm(0);
+    }
+
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_1)
+    )]
+    fn TIMER1_IRQ_1() {
+        DRIVER.check_alarm(1);
+    }
+
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_2)
+    )]
+    fn TIMER1_IRQ_2() {
+        DRIVER.check_alarm(2);
+    }
+
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_3)
+    )]
+    fn TIMER1_IRQ_3() {
+        DRIVER.check_alarm(3);
+    }
 }
 
-#[cfg_attr(target_arch = "arm", interrupt)]
-#[cfg_attr(
-    target_arch = "riscv32",
-    riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_1)
-)]
-fn TIMER1_IRQ_1() {
-    DRIVER.check_alarm(1);
-}
+#[cfg(feature = "rp2040")]
+mod inner {
+    use super::{hal::pac::interrupt, DRIVER};
 
-#[cfg_attr(target_arch = "arm", interrupt)]
-#[cfg_attr(
-    target_arch = "riscv32",
-    riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_2)
-)]
-fn TIMER1_IRQ_2() {
-    DRIVER.check_alarm(2);
-}
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER_IRQ_0)
+    )]
+    fn TIMER_IRQ_0() {
+        DRIVER.check_alarm(0);
+    }
 
-#[cfg_attr(target_arch = "arm", interrupt)]
-#[cfg_attr(
-    target_arch = "riscv32",
-    riscv_rt::external_interrupt(interrupt::TIMER1_IRQ_3)
-)]
-fn TIMER1_IRQ_3() {
-    DRIVER.check_alarm(3);
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER_IRQ_1)
+    )]
+    fn TIMER_IRQ_1() {
+        DRIVER.check_alarm(1);
+    }
+
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER_IRQ_2)
+    )]
+    fn TIMER_IRQ_2() {
+        DRIVER.check_alarm(2);
+    }
+
+    #[cfg_attr(target_arch = "arm", interrupt)]
+    #[cfg_attr(
+        target_arch = "riscv32",
+        riscv_rt::external_interrupt(interrupt::TIMER_IRQ_3)
+    )]
+    fn TIMER_IRQ_3() {
+        DRIVER.check_alarm(3);
+    }
 }

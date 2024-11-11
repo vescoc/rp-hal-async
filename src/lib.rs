@@ -38,9 +38,15 @@ pub(crate) unsafe fn write_bitmask_clear(register: *mut u32, bits: u32) {
     core::ptr::write_volatile(register.byte_offset(0x3000), bits);
 }
 
+#[cfg(feature = "rp235x")]
+type Timer = hal::timer::Timer<hal::timer::CopyableTimer1>;
+
+#[cfg(feature = "rp2040")]
+type Timer = hal::timer::Timer;
+
 /// # Safety
 #[cfg(feature = "time_driver")]
-pub unsafe fn init(timer: hal::timer::Timer<hal::timer::CopyableTimer1>) {
+pub unsafe fn init(timer: Timer) {
     time_driver::init(timer);
 
     #[cfg(feature = "digital")]
